@@ -11,8 +11,8 @@ def train_model(X_train, y_train):
             kernel='rbf',
             C=10,
             gamma='scale',
-            probability=True,  # wajib untuk confidence score
-            class_weight='balanced'  # handle imbalanced dataset
+            probability=True,
+            class_weight='balanced'
         ))
     ])
     model.fit(X_train, y_train)
