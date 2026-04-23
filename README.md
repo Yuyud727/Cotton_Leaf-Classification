@@ -187,3 +187,4 @@ Buka browser: **http://localhost:5000**
 ---
 
 > **Catatan:** Akurasi model sangat bergantung pada kualitas dan keberagaman dataset training. Pastikan gambar input memiliki karakteristik yang serupa dengan data training untuk hasil optimal.
+# Cotton_Leaf-Classification
