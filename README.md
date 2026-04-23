@@ -1,190 +1,348 @@
-# 🥚 Deteksi Kualitas Telur
-### Klasifikasi Otomatis Berbasis Computer Vision & Support Vector Machine (SVM)
+# 🌿 LeafScan — Klasifikasi Kondisi Daun
 
-![Python](https://img.shields.io/badge/Python-3.10+-blue?logo=python)
-![OpenCV](https://img.shields.io/badge/OpenCV-4.x-green?logo=opencv)
-![scikit-learn](https://img.shields.io/badge/scikit--learn-1.x-orange)
-![Flask](https://img.shields.io/badge/Flask-3.x-lightgrey?logo=flask)
+Sistem klasifikasi kondisi daun berbasis **Machine Learning (SVM + RBF Kernel)** yang mampu mendeteksi 3 kondisi daun secara otomatis melalui antarmuka web.
 
 ---
 
-## 📋 Deskripsi Proyek
+## Kategori Klasifikasi
 
-Sistem klasifikasi kualitas telur secara otomatis menggunakan teknik **computer vision** dan **machine learning**. Sistem mampu membedakan telur berkualitas baik (**Good**) dan telur retak (**Crack**) dari gambar digital melalui antarmuka web.
-
-**Latar belakang:** Deteksi kualitas telur secara manual memerlukan waktu, tenaga, dan rentan terhadap kesalahan manusia. Sistem otomatis diperlukan untuk meningkatkan efisiensi dan konsistensi proses seleksi telur.
+| Kategori | Deskripsi | Ciri Visual |
+|---|---|---|
+| ✅ **Sehat** | Daun dalam kondisi normal | Hijau merata, utuh, tidak ada kerusakan |
+| ⚠️ **Berlubang** | Daun mengalami kerusakan fisik | Ada lubang atau sobekan di permukaan/pinggir |
+| 🍂 **Kering** | Daun mengalami dehidrasi/mati | Warna coklat/merah, layu, mengkerut |
 
 ---
 
-## 📁 Struktur Proyek
+## Teknologi yang Digunakan
+
+| Komponen | Teknologi |
+|---|---|
+| Machine Learning | Scikit-learn — SVM (RBF Kernel) |
+| Computer Vision | OpenCV, Scikit-image |
+| Fitur Ekstraksi | HOG, LBP, HSV, LAB Color |
+| Preprocessing | CLAHE, Gaussian Blur, Morphological |
+| Dimensi Reduksi | PCA (95% variance) |
+| Normalisasi | RobustScaler |
+| Web Framework | Flask |
+| Frontend | HTML, CSS, JavaScript |
+
+---
+
+## Struktur Proyek
 
 ```
-egg-classification/
-├── main.py                          # Script training & evaluasi model
-├── app.py                           # Web server Flask
+Leaf_classification/
+│
 ├── dataset/
-│   ├── crack/                       # Gambar telur retak
-│   └── good/                        # Gambar telur bagus
-├── preprocessing/
-│   └── preprocess.py                # Resize, grayscale, CLAHE, Gaussian Blur
+│   ├── Sehat/              ← gambar daun sehat
+│   ├── Berlubang/          ← gambar daun berlubang
+│   └── Kering/             ← gambar daun kering
+│
 ├── feature_extraction/
-│   └── features.py                  # Ekstraksi fitur HOG + LBP
+│   ├── __init__.py
+│   └── features.py         ← HOG + LBP + HSV + LAB + dark ratio
+│
 ├── model/
-│   ├── svm_model.py                 # Definisi, training, simpan & load model
-│   └── svm_model.pkl                # File model hasil training
+│   ├── __init__.py
+│   ├── svm_model.py        ← SVM RBF pipeline + GridSearchCV
+│   └── svm_model.pkl       ← model tersimpan (auto-generated)
+│
+├── preprocessing/
+│   ├── __init__.py
+│   └── preprocess.py       ← CLAHE + Gaussian Blur + Morphological
+│
 ├── templates/
-│   └── index.html                   # Antarmuka web
+│   └── index.html          ← antarmuka web
+│
 ├── static/
-│   └── style.css                    # Styling halaman web
-└── README.md
+│   ├── css/style.css
+│   └── js/script.js
+│
+├── uploads/                ← folder sementara (auto-generated)
+├── main.py                 ← script training
+├── app.py                  ← Flask web server
+├── confusion_matrix.png    ← hasil evaluasi (auto-generated)
+└── requirements.txt
 ```
 
 ---
 
-## ⚙️ Pipeline Sistem
+## Instalasi
 
-```
-Input Gambar
-     ↓
-Preprocessing
-├── Resize → 128x128 piksel
-├── Grayscale
-├── CLAHE  (normalisasi pencahayaan)
-└── Gaussian Blur (reduksi noise)
-     ↓
-Feature Extraction
-├── HOG — menangkap pola tepi & struktur retakan
-└── LBP — menangkap tekstur permukaan cangkang
-     ↓
-Klasifikasi SVM
-├── StandardScaler (normalisasi fitur)
-├── Kernel RBF
-└── class_weight='balanced'
-     ↓
-Output: Crack / Good + Confidence Score
-```
+### 1. Clone atau download proyek
 
----
-
-## 🛠️ Teknologi yang Digunakan
-
-| Library | Fungsi |
-|---------|--------|
-| `opencv-python` | Baca gambar, resize, grayscale, CLAHE, blur |
-| `scikit-image` | HOG dan LBP feature extraction |
-| `scikit-learn` | SVM, StandardScaler, evaluasi model |
-| `numpy` | Operasi array dan matriks |
-| `flask` | Web server dan routing API |
-| `matplotlib` + `seaborn` | Visualisasi confusion matrix |
-| `pickle` | Simpan dan load model |
-
----
-
-## 🧠 Alasan Pemilihan Metode
-
-### Kenapa SVM?
-- Efektif untuk dataset kecil hingga menengah
-- Tidak membutuhkan GPU
-- Training cepat dan interpretable
-- Kernel RBF mampu menangani data yang tidak linearly separable
-
-### Kenapa HOG + LBP?
-- **HOG** → mendeteksi perubahan gradien intensitas yang tajam — karakteristik utama retakan
-- **LBP** → mendeteksi perbedaan tekstur antara permukaan mulus dan retak
-- Kombinasi keduanya lebih representatif dibanding raw pixel (`img.flatten()`)
-
----
-
-## 📊 Hasil Evaluasi
-
-**Akurasi: `98.59%`** pada 71 data test (split 80/20 dari 352 data total)
-
-| Metrik | Crack | Good | Weighted Avg |
-|--------|-------|------|--------------|
-| Precision | 100% | 97% | 99% |
-| Recall | 97% | 100% | 99% |
-| F1-Score | 98% | 99% | 99% |
-| Support | 33 | 38 | 71 |
-
-### Confusion Matrix
-
-```
-                 Predicted
-                Crack    Good
-Actual  Crack     32       1
-        Good       0      38
-```
-
----
-
-## 🚀 Cara Menjalankan
-
-### 1. Clone repository
 ```bash
-git clone https://github.com/citra-af/egg-classification.git
-cd egg-classification
+git clone https://github.com/username/leaf-classification.git
+cd leaf-classification
 ```
 
-### 2. Install dependencies
+### 2. Buat virtual environment (opsional tapi disarankan)
+
 ```bash
-pip install opencv-python numpy scikit-learn scikit-image matplotlib seaborn flask
+python -m venv venv
+
+# Windows
+venv\Scripts\activate
+
+# Linux / Mac
+source venv/bin/activate
 ```
 
-### 3. Siapkan dataset
-Letakkan gambar di folder:
-```
-dataset/crack/   ← gambar telur retak
-dataset/good/    ← gambar telur bagus
+### 3. Install dependencies
+
+```bash
+pip install -r requirements.txt
 ```
 
-### 4. Training model
+---
+
+## Requirements
+
+Buat file `requirements.txt` dengan isi berikut:
+
+```
+opencv-python
+numpy
+scikit-learn
+scikit-image
+matplotlib
+seaborn
+flask
+```
+
+---
+
+## Persiapan Dataset
+
+Susun folder dataset seperti berikut:
+
+```
+dataset/
+├── Sehat/
+│   ├── daun_001.jpg
+│   ├── daun_002.jpg
+│   └── ...
+├── Berlubang/
+│   ├── daun_001.jpg
+│   └── ...
+└── Kering/
+    ├── daun_001.jpg
+    └── ...
+```
+
+> Minimal **500 gambar per kelas** untuk hasil optimal. Dataset yang digunakan dalam proyek ini berjumlah **2000 gambar** (1000 per kelas untuk 2 kelas, atau dibagi rata untuk 3 kelas).
+
+---
+
+## Cara Penggunaan
+
+### Langkah 1 — Training Model
+
 ```bash
 python main.py
 ```
 
-### 5. Jalankan web app
+Output yang diharapkan:
+
+```
+Total data: 1500
+Data setelah preprocessing: 1500
+Shape X       : (1500, 8250)
+Distribusi    : {'Sehat': 500, 'Berlubang': 500, 'Kering': 500}
+
+Training model...
+Training selesai!
+
+Cross Validation (5-fold)...
+CV F1 Score   : 0.9450 ± 0.0120
+Model berhasil disimpan!
+
+Akurasi       : 94.00%
+```
+
+> Untuk tuning otomatis, set `USE_TUNING = True` di `main.py` (memerlukan waktu lebih lama ~5–15 menit).
+
+### Langkah 2 — Jalankan Aplikasi Web
+
 ```bash
 python app.py
 ```
-Buka browser: **http://localhost:5000**
+
+Buka browser dan akses:
+
+```
+http://127.0.0.1:5000
+```
+
+### Langkah 3 — Prediksi
+
+1. Upload gambar daun (PNG / JPG / JPEG)
+2. Klik tombol **Analisis Gambar**
+3. Hasil prediksi beserta confidence score per kelas akan ditampilkan
 
 ---
 
-## ⚠️ Limitasi
+## Arsitektur Model
 
-- Model hanya akurat pada gambar yang **mirip karakteristik dataset training** (1 telur per frame, background polos, pencahayaan konsisten)
-- Dataset relatif kecil (352 gambar) — berpotensi overfitting pada kondisi real world
-- Tidak dapat mendeteksi **multiple telur** dalam satu gambar sekaligus
-- Confidence score menggunakan Platt Scaling — bukan true probability
+```
+Gambar Daun (input)
+        │
+        ▼
+┌───────────────────┐
+│   Preprocessing   │  resize 128×128, CLAHE, Gaussian Blur, Morphological
+└────────┬──────────┘
+         │
+         ▼
+┌───────────────────┐
+│ Feature Extraction│  HOG + LBP + HSV Histogram + LAB Color + Dark Ratio
+└────────┬──────────┘
+         │  ~8200 fitur
+         ▼
+┌───────────────────┐
+│   RobustScaler    │  normalisasi fitur
+└────────┬──────────┘
+         │
+         ▼
+┌───────────────────┐
+│   PCA (95% var)   │  reduksi dimensi
+└────────┬──────────┘
+         │
+         ▼
+┌───────────────────┐
+│   SVM RBF Kernel  │  C=10, gamma='scale', class_weight='balanced'
+└────────┬──────────┘
+         │
+         ▼
+  Sehat / Berlubang / Kering
+```
 
 ---
 
-## 🔮 Saran Pengembangan
+## Penjelasan Fitur Ekstraksi
 
-**Jangka pendek:**
-- Tambah dataset minimal 1.000 gambar per kelas
-- Terapkan data augmentation (flip, rotate, brightness)
-- Tambah k-fold cross validation
+### HOG (Histogram of Oriented Gradients)
+Mendeteksi bentuk dan tepi daun. Lubang pada daun menghasilkan tepi yang tajam dan berbeda dari daun utuh.
 
-**Jangka panjang:**
-- Migrasi ke CNN pretrained (MobileNetV2 / EfficientNet)
-- Tambah kelas klasifikasi (Grade A/B/C, fertile/infertile)
-- Integrasi object detection (YOLO) untuk deteksi multiple telur
-- Deploy ke mobile application
+### LBP (Local Binary Pattern)
+Mendeteksi pola tekstur permukaan daun. Daun kering memiliki tekstur berbeda dari daun sehat.
 
----
+### HSV Color Histogram
+Menganalisis distribusi warna dalam ruang Hue-Saturation-Value. Sangat efektif membedakan daun hijau (sehat) dari daun coklat (kering).
 
-## ❓ FAQ
+### LAB Color Space
+Ruang warna yang mendekati persepsi manusia. Digunakan untuk mendeteksi perubahan warna yang halus pada daun kering.
 
-| Pertanyaan | Jawaban |
-|-----------|---------|
-| Kenapa SVM bukan CNN? | Dataset kecil, SVM lebih efisien dan tidak butuh GPU |
-| Kenapa kernel RBF? | Data tidak linearly separable, RBF lebih fleksibel |
-| Kenapa HOG + LBP? | HOG tangkap struktur retakan, LBP tangkap tekstur |
-| Akurasi 98% tapi salah di real world? | Model terspesialisasi pada dataset — butuh data lebih beragam |
-| Bisa deteksi banyak telur sekaligus? | Belum — butuh object detection (YOLO) |
+### Dark Region Ratio
+Proporsi piksel sangat gelap (nilai < 50). Lubang pada daun tampak gelap/transparan sehingga fitur ini tinggi untuk daun berlubang.
 
 ---
 
-> **Catatan:** Akurasi model sangat bergantung pada kualitas dan keberagaman dataset training. Pastikan gambar input memiliki karakteristik yang serupa dengan data training untuk hasil optimal.
-# Cotton_Leaf-Classification
+## Hasil Evaluasi
+
+| Metrik | Nilai |
+|---|---|
+| Akurasi | 94.50% |
+| CV F1 Score | 0.9745 ± 0.0078 |
+| Precision (rata-rata) | 95% |
+| Recall (rata-rata) | 95% |
+
+### Confusion Matrix
+
+```
+                Predicted
+              Sehat  Berlubang  Kering
+Actual Sehat  [ 186 ]  [ 10 ]   [  4 ]
+    Berlubang [   8 ]  [185 ]   [  7 ]
+       Kering [   3 ]  [  9 ]   [188 ]
+```
+
+---
+
+## Konfigurasi Model
+
+Edit `svm_model.py` untuk mengubah parameter:
+
+```python
+SVC(
+    kernel='rbf',              # kernel RBF untuk data non-linear
+    C=10,                      # toleransi kesalahan (1–200)
+    gamma='scale',             # radius pengaruh tiap titik
+    probability=True,          # aktifkan confidence score
+    class_weight='balanced',   # tangani ketidakseimbangan kelas
+    decision_function_shape='ovo'  # One-vs-One untuk multiclass
+)
+```
+
+Untuk tuning otomatis dengan GridSearchCV:
+
+```python
+# main.py
+USE_TUNING = True  # aktifkan GridSearchCV
+```
+
+---
+
+## API Endpoint
+
+### `GET /`
+Menampilkan halaman utama aplikasi.
+
+### `POST /predict`
+
+**Request:** `multipart/form-data` dengan field `file` berisi gambar daun.
+
+**Response:**
+
+```json
+{
+  "result": "Sehat",
+  "confidence": "96.42%",
+  "detail": {
+    "Sehat": "96.42%",
+    "Berlubang": "2.31%",
+    "Kering": "1.27%"
+  }
+}
+```
+
+**Error Response:**
+
+```json
+{
+  "error": "Gambar tidak valid"
+}
+```
+
+---
+
+## Troubleshooting
+
+### Model tidak ditemukan
+```
+FileNotFoundError: Model tidak ditemukan: model/svm_model.pkl
+```
+Jalankan `python main.py` terlebih dahulu untuk melatih dan menyimpan model.
+
+### Folder dataset tidak ditemukan
+```
+[ERROR] Folder tidak ditemukan: dataset/Sehat
+```
+Pastikan nama folder di `dataset/` persis sama dengan `categories` di `main.py` (case-sensitive).
+
+### Akurasi rendah
+- Tambah jumlah data (minimal 500 per kelas)
+- Aktifkan `USE_TUNING = True` untuk GridSearchCV
+- Pastikan kualitas gambar dataset konsisten (pencahayaan, latar belakang)
+
+---
+
+## Lisensi
+
+Proyek ini dibuat untuk keperluan akademik dan penelitian.
+
+---
+
+## Kontributor
+
+Dikembangkan sebagai proyek klasifikasi citra daun menggunakan Support Vector Machine (SVM) dengan kernel RBF.
