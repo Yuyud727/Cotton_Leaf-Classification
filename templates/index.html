@@ -1,138 +1,479 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Klasifikasi Telur</title>
-    <link rel="stylesheet" href="/static/style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LeafScan — Klasifikasi Daun</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #0d1f0f;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 20% 20%, rgba(34,120,50,0.18) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 40% at 80% 80%, rgba(16,80,30,0.15) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .page {
+    width: 100%;
+    max-width: 460px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+
+  .brand-icon {
+    width: 36px;
+    height: 36px;
+    background: #22c55e;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .brand-text {
+    font-size: 15px;
+    font-weight: 600;
+    color: #e8f5e9;
+    letter-spacing: -0.3px;
+  }
+
+  .brand-sub {
+    font-size: 11px;
+    color: #4ade80;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px;
+    padding: 32px;
+    backdrop-filter: blur(12px);
+  }
+
+  .card-title {
+    font-size: 22px;
+    font-weight: 600;
+    color: #f0fdf4;
+    letter-spacing: -0.5px;
+    margin-bottom: 6px;
+  }
+
+  .card-desc {
+    font-size: 13px;
+    color: #86efac;
+    margin-bottom: 28px;
+    line-height: 1.5;
+  }
+
+  .badges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+  }
+
+  .badge {
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    padding: 4px 10px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    letter-spacing: 0.2px;
+  }
+
+  .badge-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+  .badge.sehat     { background: rgba(74,222,128,0.1);  color: #86efac; border: 1px solid rgba(74,222,128,0.2); }
+  .badge.berlubang { background: rgba(251,191,36,0.1);  color: #fde68a; border: 1px solid rgba(251,191,36,0.2); }
+  .badge.kering    { background: rgba(251,146,60,0.1);  color: #fdba74; border: 1px solid rgba(251,146,60,0.2); }
+  .badge.sehat     .badge-dot { background: #4ade80; }
+  .badge.berlubang .badge-dot { background: #fbbf24; }
+  .badge.kering    .badge-dot { background: #fb923c; }
+
+  .upload-zone {
+    border: 1.5px dashed rgba(74,222,128,0.3);
+    border-radius: 14px;
+    padding: 32px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    background: rgba(74,222,128,0.03);
+    margin-bottom: 16px;
+    gap: 8px;
+    text-align: center;
+    min-height: 160px;
+  }
+
+  .upload-zone:hover, .upload-zone.drag {
+    border-color: #4ade80;
+    background: rgba(74,222,128,0.07);
+  }
+
+  .uz-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(74,222,128,0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 4px;
+    transition: transform 0.2s;
+  }
+
+  .upload-zone:hover .uz-icon { transform: translateY(-2px); }
+
+  .uz-label { font-size: 14px; color: #bbf7d0; font-weight: 500; }
+  .uz-hint  { font-size: 12px; color: #4ade80; font-family: 'DM Mono', monospace; }
+
+  .preview-wrap {
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .preview-wrap img {
+    width: 100%;
+    max-height: 220px;
+    object-fit: contain;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(0,0,0,0.2);
+  }
+
+  .preview-actions { display: flex; justify-content: flex-end; }
+
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.12);
+    color: #86efac;
+    font-size: 12px;
+    font-family: 'DM Sans', sans-serif;
+    padding: 6px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .btn-ghost:hover { border-color: rgba(239,68,68,0.4); color: #fca5a5; }
+
+  .btn-analyze {
+    width: 100%;
+    padding: 14px;
+    background: #16a34a;
+    color: #f0fdf4;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    letter-spacing: -0.2px;
+  }
+
+  .btn-analyze:hover:not(:disabled) { background: #15803d; transform: translateY(-1px); }
+  .btn-analyze:active:not(:disabled) { transform: translateY(0); }
+  .btn-analyze:disabled { background: rgba(22,163,74,0.3); color: rgba(240,253,244,0.4); cursor: not-allowed; }
+
+  .spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(240,253,244,0.3);
+    border-top-color: #f0fdf4;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .result-box {
+    display: none;
+    border-radius: 14px;
+    padding: 20px;
+    animation: slideUp 0.3s ease;
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .result-box.sehat     { background: rgba(22,163,74,0.12);  border: 1px solid rgba(22,163,74,0.25); }
+  .result-box.berlubang { background: rgba(202,138,4,0.12);  border: 1px solid rgba(202,138,4,0.25); }
+  .result-box.kering    { background: rgba(194,65,12,0.12);  border: 1px solid rgba(194,65,12,0.25); }
+
+  .result-header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+
+  .result-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  .sehat     .result-dot { background: #4ade80; box-shadow: 0 0 8px #4ade80; }
+  .berlubang .result-dot { background: #fbbf24; box-shadow: 0 0 8px #fbbf24; }
+  .kering    .result-dot { background: #fb923c; box-shadow: 0 0 8px #fb923c; }
+
+  .result-label-main { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; }
+
+  .sehat     .result-label-main { color: #86efac; }
+  .berlubang .result-label-main { color: #fde68a; }
+  .kering    .result-label-main { color: #fdba74; }
+
+  .result-conf { font-size: 12px; margin-left: auto; font-family: 'DM Mono', monospace; }
+
+  .sehat     .result-conf { color: #4ade80; }
+  .berlubang .result-conf { color: #fbbf24; }
+  .kering    .result-conf { color: #fb923c; }
+
+  .conf-list { display: flex; flex-direction: column; gap: 8px; }
+  .conf-item { display: flex; flex-direction: column; gap: 4px; }
+  .conf-row  { display: flex; justify-content: space-between; align-items: center; }
+  .conf-name { font-size: 12px; color: rgba(240,253,244,0.6); font-family: 'DM Mono', monospace; }
+  .conf-pct  { font-size: 12px; font-family: 'DM Mono', monospace; color: rgba(240,253,244,0.8); }
+  .conf-track { height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; }
+  .conf-fill { height: 100%; border-radius: 2px; transition: width 0.6s cubic-bezier(0.4,0,0.2,1); }
+
+  .fill-sehat     { background: #4ade80; }
+  .fill-berlubang { background: #fbbf24; }
+  .fill-kering    { background: #fb923c; }
+
+  .error-box {
+    display: none;
+    background: rgba(239,68,68,0.08);
+    border: 1px solid rgba(239,68,68,0.2);
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 13px;
+    color: #fca5a5;
+  }
+
+  input[type=file] { display: none; }
+</style>
 </head>
 <body>
-    <div class="container">
-        <div class="card">
-            <div class="header">
-                <span class="icon">🥚</span>
-                <h1>Deteksi Kualitas Telur</h1>
-                <p class="subtitle">Upload gambar telur untuk mendeteksi kualitasnya</p>
-            </div>
+<div class="page">
+  <div class="brand">
+    <div class="brand-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0d1f0f" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10"/>
+        <path d="M12 2c3 4 4 8 4 10 0 5.5-4.5 10-10 10"/>
+        <path d="M2 12h20"/>
+      </svg>
+    </div>
+    <div>
+      <div class="brand-text">LeafScan</div>
+      <div class="brand-sub">SVM · RBF Kernel</div>
+    </div>
+  </div>
 
-            <div class="upload-area" id="uploadArea">
-                <input type="file" id="fileInput" accept="image/*" hidden>
-                <div class="upload-content" onclick="document.getElementById('fileInput').click()">
-                    <span class="upload-icon">📁</span>
-                    <p>Klik untuk upload gambar</p>
-                    <p class="upload-hint">PNG, JPG, JPEG didukung</p>
-                </div>
-            </div>
+  <div class="card">
+    <div class="card-title">Klasifikasi Daun</div>
+    <div class="card-desc">Upload gambar daun untuk mendeteksi kondisinya secara otomatis menggunakan SVM.</div>
 
-            <div class="preview-container" id="previewContainer" style="display:none;">
-                <img id="preview" alt="Preview gambar">
-                <button class="btn-reset" onclick="resetForm()">✕ Ganti Gambar</button>
-            </div>
-
-            <button class="btn-predict" id="btnPredict" onclick="predict()" disabled>
-                <span id="btnText">Analisis Gambar</span>
-                <span id="btnLoader" class="loader" style="display:none;"></span>
-            </button>
-
-            <div class="result-box" id="resultBox" style="display:none;">
-                <div class="result-icon" id="resultIcon"></div>
-                <h2 class="result-label" id="resultLabel"></h2>
-                <p class="result-confidence" id="resultConfidence"></p>
-            </div>
-
-            <div class="error-box" id="errorBox" style="display:none;">
-                <p id="errorMsg"></p>
-            </div>
-        </div>
+    <div class="badges">
+      <span class="badge sehat"><span class="badge-dot"></span>Sehat</span>
+      <span class="badge berlubang"><span class="badge-dot"></span>Berlubang</span>
+      <span class="badge kering"><span class="badge-dot"></span>Kering</span>
     </div>
 
-    <script>
-        const fileInput = document.getElementById('fileInput');
-        const uploadArea = document.getElementById('uploadArea');
-        const previewContainer = document.getElementById('previewContainer');
-        const preview = document.getElementById('preview');
-        const btnPredict = document.getElementById('btnPredict');
-        const resultBox = document.getElementById('resultBox');
-        const errorBox = document.getElementById('errorBox');
+    <input type="file" id="fileInput" accept="image/*">
 
-        fileInput.addEventListener('change', function () {
-            const file = this.files[0];
-            if (!file) return;
+    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+      <div class="uz-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2" stroke-linecap="round">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+      </div>
+      <div class="uz-label">Klik atau drag gambar ke sini</div>
+      <div class="uz-hint">PNG · JPG · JPEG</div>
+    </div>
 
-            const reader = new FileReader();
-            reader.onload = e => {
-                preview.src = e.target.result;
-                uploadArea.style.display = 'none';
-                previewContainer.style.display = 'flex';
-                btnPredict.disabled = false;
-                resultBox.style.display = 'none';
-                errorBox.style.display = 'none';
-            };
-            reader.readAsDataURL(file);
+    <div class="preview-wrap" id="previewWrap">
+      <img id="preview" alt="Preview gambar daun">
+      <div class="preview-actions">
+        <button class="btn-ghost" onclick="resetForm()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+          Ganti gambar
+        </button>
+      </div>
+    </div>
+
+    <button class="btn-analyze" id="btnAnalyze" onclick="predict()" disabled>
+      <span id="btnText">Analisis Gambar</span>
+      <div class="spinner" id="spinner"></div>
+    </button>
+
+    <div class="result-box" id="resultBox">
+      <div class="result-header">
+        <div class="result-dot"></div>
+        <div class="result-label-main" id="resultLabel"></div>
+        <div class="result-conf" id="resultConf"></div>
+      </div>
+      <div class="conf-list" id="confList"></div>
+    </div>
+
+    <div class="error-box" id="errorBox"></div>
+  </div>
+</div>
+
+<script>
+  const fileInput  = document.getElementById('fileInput');
+  const uploadZone = document.getElementById('uploadZone');
+  const previewWrap= document.getElementById('previewWrap');
+  const preview    = document.getElementById('preview');
+  const btnAnalyze = document.getElementById('btnAnalyze');
+  const resultBox  = document.getElementById('resultBox');
+  const errorBox   = document.getElementById('errorBox');
+
+  const LABELS = {
+    'Sehat':     { cls: 'sehat',     fill: 'fill-sehat',     text: 'Daun Sehat' },
+    'Berlubang': { cls: 'berlubang', fill: 'fill-berlubang', text: 'Daun Berlubang' },
+    'Kering':    { cls: 'kering',    fill: 'fill-kering',    text: 'Daun Kering' },
+    'Gasehat':   { cls: 'berlubang', fill: 'fill-berlubang', text: 'Daun Berlubang' },
+    'crack':     { cls: 'kering',    fill: 'fill-kering',    text: 'Rusak' },
+    'good':      { cls: 'sehat',     fill: 'fill-sehat',     text: 'Bagus' },
+  };
+
+  fileInput.addEventListener('change', function() {
+    const file = this.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      preview.src = e.target.result;
+      uploadZone.style.display = 'none';
+      previewWrap.style.display = 'flex';
+      btnAnalyze.disabled = false;
+      resultBox.style.display = 'none';
+      errorBox.style.display  = 'none';
+    };
+    reader.readAsDataURL(file);
+  });
+
+  uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag'); });
+  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag'));
+  uploadZone.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadZone.classList.remove('drag');
+    fileInput.files = e.dataTransfer.files;
+    fileInput.dispatchEvent(new Event('change'));
+  });
+
+  function resetForm() {
+    fileInput.value = '';
+    uploadZone.style.display = 'flex';
+    previewWrap.style.display = 'none';
+    btnAnalyze.disabled = true;
+    resultBox.style.display = 'none';
+    errorBox.style.display  = 'none';
+  }
+
+  function setLoading(on) {
+    document.getElementById('btnText').style.display = on ? 'none' : 'inline';
+    document.getElementById('spinner').style.display = on ? 'block' : 'none';
+    btnAnalyze.disabled = on;
+  }
+
+  async function predict() {
+    const file = fileInput.files[0];
+    if (!file) return;
+    setLoading(true);
+    resultBox.style.display = 'none';
+    errorBox.style.display  = 'none';
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res  = await fetch('/predict', { method: 'POST', body: formData });
+      const data = await res.json();
+
+      if (data.error) {
+        errorBox.textContent = data.error;
+        errorBox.style.display = 'block';
+        return;
+      }
+
+      const key  = data.result;
+      const info = LABELS[key] || { cls: 'sehat', fill: 'fill-sehat', text: key };
+
+      resultBox.className = 'result-box ' + info.cls;
+      document.getElementById('resultLabel').textContent = info.text;
+      document.getElementById('resultConf').textContent  = data.confidence;
+
+      const confList = document.getElementById('confList');
+      confList.innerHTML = '';
+
+      if (data.detail) {
+        Object.entries(data.detail).forEach(([cls, pct]) => {
+          const inf = LABELS[cls] || { fill: 'fill-sehat', text: cls };
+          const num = parseFloat(pct);
+          confList.innerHTML += `
+            <div class="conf-item">
+              <div class="conf-row">
+                <span class="conf-name">${inf.text || cls}</span>
+                <span class="conf-pct">${pct}</span>
+              </div>
+              <div class="conf-track">
+                <div class="conf-fill ${inf.fill}" style="width:${num.toFixed(1)}%"></div>
+              </div>
+            </div>`;
         });
+      }
 
-        // Drag & drop
-        uploadArea.addEventListener('dragover', e => {
-            e.preventDefault();
-            uploadArea.classList.add('dragover');
-        });
-        uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
-        uploadArea.addEventListener('drop', e => {
-            e.preventDefault();
-            uploadArea.classList.remove('dragover');
-            fileInput.files = e.dataTransfer.files;
-            fileInput.dispatchEvent(new Event('change'));
-        });
+      resultBox.style.display = 'block';
 
-        function resetForm() {
-            fileInput.value = '';
-            uploadArea.style.display = 'flex';
-            previewContainer.style.display = 'none';
-            btnPredict.disabled = true;
-            resultBox.style.display = 'none';
-            errorBox.style.display = 'none';
-        }
-
-        async function predict() {
-            const file = fileInput.files[0];
-            if (!file) return;
-
-            const btnText = document.getElementById('btnText');
-            const btnLoader = document.getElementById('btnLoader');
-            btnText.style.display = 'none';
-            btnLoader.style.display = 'inline-block';
-            btnPredict.disabled = true;
-            resultBox.style.display = 'none';
-            errorBox.style.display = 'none';
-
-            const formData = new FormData();
-            formData.append('file', file);
-
-            try {
-                const res = await fetch('/predict', { method: 'POST', body: formData });
-                const data = await res.json();
-
-                if (data.error) {
-                    errorBox.style.display = 'block';
-                    document.getElementById('errorMsg').textContent = '⚠️ ' + data.error;
-                } else {
-                    const isCrack = data.result === 'crack';
-                    document.getElementById('resultIcon').textContent = isCrack ? '❌' : '✅';
-                    document.getElementById('resultLabel').textContent = isCrack ? 'Retak (Crack)' : 'Bagus (Good)';
-                    document.getElementById('resultLabel').style.color = isCrack ? '#e74c3c' : '#27ae60';
-                    document.getElementById('resultConfidence').textContent = 'Confidence: ' + data.confidence;
-                    resultBox.style.display = 'flex';
-                    resultBox.className = 'result-box ' + (isCrack ? 'result-crack' : 'result-good');
-                }
-            } catch (err) {
-                errorBox.style.display = 'block';
-                document.getElementById('errorMsg').textContent = '⚠️ Gagal menghubungi server.';
-            } finally {
-                btnText.style.display = 'inline';
-                btnLoader.style.display = 'none';
-                btnPredict.disabled = false;
-            }
-        }
-    </script>
+    } catch(err) {
+      errorBox.textContent = 'Gagal menghubungi server. Pastikan Flask berjalan.';
+      errorBox.style.display = 'block';
+    } finally {
+      setLoading(false);
+    }
+  }
+</script>
 </body>
 </html>
