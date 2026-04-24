@@ -1,5 +1,6 @@
 import cv2
 import os
+import hashlib
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -15,7 +16,7 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 # ── Load Dataset ──────────────────────────────────────────
 dataset_path = "dataset"
-categories   = ["Sehat", "Berlubang", "Kering"]  # ← 3 kelas
+categories   = ["Sehat", "Berlubang", "Kering"]
 data         = []
 
 for category in categories:
@@ -29,7 +30,7 @@ for category in categories:
         img_path = os.path.join(folder, img_name)
         img_bgr  = cv2.imread(img_path)
         if img_bgr is not None:
-            data.append((img_bgr, category))
+            data.append((img_bgr, img_path, category))  # ← simpan path untuk cek duplikat
             count += 1
         else:
             print(f"[WARNING] Gagal baca: {img_path}")
@@ -37,33 +38,72 @@ for category in categories:
 
 print(f"\nTotal data: {len(data)}")
 
+# ── Cek Duplikasi ─────────────────────────────────────────
+print("\nMengecek duplikasi gambar...")
+
+def get_hash(path):
+    with open(path, 'rb') as f:
+        return hashlib.md5(f.read()).hexdigest()
+
+hashes     = {}
+duplicates = []
+
+for _, img_path, label in data:
+    h = get_hash(img_path)
+    if h in hashes:
+        duplicates.append((img_path, hashes[h]))
+    else:
+        hashes[img_path] = h  # simpan path → hash
+
+# Deteksi hash yang muncul lebih dari sekali
+hash_count = {}
+for _, img_path, _ in data:
+    h = get_hash(img_path)
+    if h not in hash_count:
+        hash_count[h] = []
+    hash_count[h].append(img_path)
+
+duplicates = {h: paths for h, paths in hash_count.items() if len(paths) > 1}
+
+if duplicates:
+    print(f"[WARNING] Ditemukan {len(duplicates)} grup duplikasi:")
+    for h, paths in list(duplicates.items())[:10]:  # tampilkan 10 pertama
+        print(f"  Hash: {h[:10]}...")
+        for p in paths:
+            print(f"    → {p}")
+else:
+    print("Tidak ada duplikasi ditemukan ✅")
+
 # ── Preprocessing + Feature Extraction ───────────────────
 X, y = [], []
 
-for img_bgr, label in data:
+for img_bgr, img_path, label in data:
     try:
-        img_gray     = preprocess_image(img_bgr)
-        feat_gray    = extract_features(img_gray)
-        feat_color   = extract_color_features(img_bgr)
-        features     = np.concatenate([feat_gray, feat_color])
+        img_gray   = preprocess_image(img_bgr)
+        feat_gray  = extract_features(img_gray)
+        feat_color = extract_color_features(img_bgr)
+        features   = np.concatenate([feat_gray, feat_color])
         X.append(features)
         y.append(label)
     except Exception as e:
-        print(f"[WARNING] Gagal proses: {e}")
+        print(f"[WARNING] Gagal proses {img_path}: {e}")
 
 X = np.array(X)
 y = np.array(y)
 
-print(f"Shape X    : {X.shape}")
+print(f"\nShape X    : {X.shape}")
 print(f"Distribusi : { {c: list(y).count(c) for c in categories} }")
 
 # ── Split Data ────────────────────────────────────────────
 X_train, X_test, y_train, y_test = train_test_split(
     X, y,
-    test_size=0.6,
+    test_size=0.2,   # ← dikembalikan ke 0.2 (standar)
     random_state=42,
     stratify=y
 )
+
+print(f"\nData training : {len(X_train)}")
+print(f"Data testing  : {len(X_test)}")
 
 # ── Training ──────────────────────────────────────────────
 USE_TUNING = False

@@ -11,6 +11,7 @@ def train_model(X_train, y_train):
         ('scaler', RobustScaler()),
         ('pca', PCA(n_components=0.95)),
         ('svm', SVC(
+            # KERNEL
             kernel='rbf',
             C=10,
             gamma='scale',
